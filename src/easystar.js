@@ -9,7 +9,9 @@
 var EasyStar = {}
 var Instance = require('./instance');
 var Node = require('./node');
+var Heuristics = require('./heuristics');
 var Heap = require('heap');
+var {compressPath, smoothenPath, expandPath} = require('./util');
 
 const CLOSED_LIST = 0;
 const OPEN_LIST = 1;
@@ -34,6 +36,8 @@ EasyStar.js = function() {
     var iterationsPerCalculation = Number.MAX_VALUE;
     var acceptableTiles;
     var diagonalsEnabled = false;
+    var orthogonalHeuristic = Heuristics.manhattan;
+    var diagonalHeuristic = Heuristics.octile;
 
     /**
     * Sets the collision grid that EasyStar uses.
@@ -176,6 +180,16 @@ EasyStar.js = function() {
     **/
     this.setIterationsPerCalculation = function(iterations) {
         iterationsPerCalculation = iterations;
+    };
+
+    /**
+     * Set heuristic function for calculating node distance
+     * @param {Function} orthogonalHeuristic Function for calculating the orthogonal node distance.
+     * @param {Function} diagonalHeuristic  Function for calculating the diagonal node distance.
+     */
+    this.setHeuristics = function(orthogonalHeuristic, diagonalHeuristic) {
+        this.orthogonalHeuristic = orthogonalHeuristic || this.orthogonalHeuristic;
+        this.diagonalHeuristic = diagonalHeuristic || this.diagonalHeuristic;
     };
 
     /**
@@ -528,20 +542,14 @@ EasyStar.js = function() {
     };
 
     var getDistance = function(x1,y1,x2,y2) {
+        var dx = Math.abs(x1 - x2);
+        var dy = Math.abs(y1 - y2);
         if (diagonalsEnabled) {
             // Octile distance
-            var dx = Math.abs(x1 - x2);
-            var dy = Math.abs(y1 - y2);
-            if (dx < dy) {
-                return DIAGONAL_COST * dx + dy;
-            } else {
-                return DIAGONAL_COST * dy + dx;
-            }
+            return diagonalHeuristic(dx, dy);
         } else {
             // Manhattan distance
-            var dx = Math.abs(x1 - x2);
-            var dy = Math.abs(y1 - y2);
-            return (dx + dy);
+            return orthogonalHeuristic(dx, dy);
         }
     };
 }
@@ -554,3 +562,9 @@ EasyStar.BOTTOM = 'BOTTOM'
 EasyStar.BOTTOM_LEFT = 'BOTTOM_LEFT'
 EasyStar.LEFT = 'LEFT'
 EasyStar.TOP_LEFT = 'TOP_LEFT'
+
+EasyStar.Heuristics = Heuristics;
+
+EasyStar.compressPath = compressPath;
+EasyStar.smoothenPath = smoothenPath;
+EasyStar.expandPath = expandPath;

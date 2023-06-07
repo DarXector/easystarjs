@@ -7,6 +7,17 @@ export const BOTTOM_LEFT: 'BOTTOM_LEFT'
 export const LEFT: 'LEFT'
 export const TOP_LEFT: 'TOP_LEFT'
 
+export const Heuristic: {
+  manhattan: (dx: number, dy: number) => number
+  octile: (dx: number, dy: number) => number
+  chebyshev: (dx: number, dy: number) => number
+  euclidean: (dx: number, dy: number) => number
+}
+
+export const compressPath: (path: { x: number, y: number }[]) => { x: number, y: number }[];
+export const expandPath: (path: { x: number, y: number }[]) => { x: number, y: number }[];
+export const smoothenPath: (grid: number[][], path: { x: number, y: number }[], walkable: number[]) => { x: number, y: number }[];
+
 type Direction = 'TOP' | 'TOP_RIGHT' | 'RIGHT' | 'BOTTOM_RIGHT' | 'BOTTOM' | 'BOTTOM_LEFT' | 'LEFT' | 'TOP_LEFT'
 
 export class js {
@@ -89,6 +100,13 @@ export class js {
    * @param {Number} iterations The number of searches to prefrom per calculate() call.
    */
   setIterationsPerCalculation(iterations: number): void
+
+  /**
+   * Set heuristic functions for calculating node distance
+   * @param {Function} orthogonalHeuristic Function for calculating the orthogonal node distance.
+   * @param {Function} diagonalHeuristic  Function for calculating the diagonal node distance.
+   */
+  setHeuristics(orthogonalHeuristic: (dx: number, dy: number) => number, diagonalHeuristic: (dx: number, dy: number) => number): void
 
   /**
    * Avoid a particular point on the grid,
