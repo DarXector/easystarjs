@@ -38,6 +38,11 @@ EasyStar.js = function() {
     var diagonalsEnabled = false;
     var orthogonalHeuristic = Heuristics.manhattan;
     var diagonalHeuristic = Heuristics.octile;
+    var directionCosts = [
+        [1.0, 1.0, 1.0],
+        [1.0,   0, 1.0],
+        [1.0, 1.0, 1.0],
+    ];
 
     /**
     * Sets the collision grid that EasyStar uses.
@@ -184,17 +189,28 @@ EasyStar.js = function() {
 
     /**
      * Set heuristic function for calculating node distance
-     * @param {Function} orthogonalHeuristic Function for calculating the orthogonal node distance.
-     * @param {Function} diagonalHeuristic  Function for calculating the diagonal node distance.
+     * @param {Function} orthogonal Function for calculating the orthogonal node distance.
+     * @param {Function} diagonal  Function for calculating the diagonal node distance.
      */
-    this.setHeuristics = function(orthogonalHeuristic, diagonalHeuristic) {
-        this.orthogonalHeuristic = orthogonalHeuristic || this.orthogonalHeuristic;
-        this.diagonalHeuristic = diagonalHeuristic || this.diagonalHeuristic;
+    this.setHeuristics = function(orthogonal, diagonal) {
+        orthogonalHeuristic = orthogonal || Heuristics.manhattan;
+        diagonalHeuristic = diagonal || Heuristics.euclidean;
     };
 
     /**
+     * Set costs for different directions
+     * @param {Array<Array<number>>} costs Two dimensional array with direction costs. Example:
+     * [1.0, 1.0, 1.0],
+     * [1.0,   0, 1.0],
+     * [1.0, 1.0, 1.0],
+     */
+    this.setDirectionCosts = function(costs) {
+        directionCosts = costs || directionCosts;
+    }
+
+    /**
     * Avoid a particular point on the grid,
-    * regardless of whether or not it is an acceptable tile.
+    * regardless of whether it is an acceptable tile.
     *
     * @param {Number} x The x value of the point to avoid.
     * @param {Number} y The y value of the point to avoid.
@@ -396,20 +412,24 @@ EasyStar.js = function() {
             searchNode.list = CLOSED_LIST;
 
             if (searchNode.y > 0) {
+                const directionCost = getDirectionCost(0, -1);
                 checkAdjacentNode(instance, searchNode,
-                    0, -1, STRAIGHT_COST * getTileCost(searchNode.x, searchNode.y-1));
+                    0, -1, STRAIGHT_COST * directionCost * getTileCost(searchNode.x, searchNode.y-1));
             }
             if (searchNode.x < collisionGrid[0].length-1) {
+                const directionCost = getDirectionCost(1, 0);
                 checkAdjacentNode(instance, searchNode,
-                    1, 0, STRAIGHT_COST * getTileCost(searchNode.x+1, searchNode.y));
+                    1, 0, STRAIGHT_COST * directionCost * getTileCost(searchNode.x+1, searchNode.y));
             }
             if (searchNode.y < collisionGrid.length-1) {
+                const directionCost = getDirectionCost(0, 1);
                 checkAdjacentNode(instance, searchNode,
-                    0, 1, STRAIGHT_COST * getTileCost(searchNode.x, searchNode.y+1));
+                    0, 1, STRAIGHT_COST * directionCost * getTileCost(searchNode.x, searchNode.y+1));
             }
             if (searchNode.x > 0) {
+                const directionCost = getDirectionCost(-1, 0);
                 checkAdjacentNode(instance, searchNode,
-                    -1, 0, STRAIGHT_COST * getTileCost(searchNode.x-1, searchNode.y));
+                    -1, 0, STRAIGHT_COST * directionCost * getTileCost(searchNode.x-1, searchNode.y));
             }
             if (diagonalsEnabled) {
                 if (searchNode.x > 0 && searchNode.y > 0) {
@@ -418,8 +438,9 @@ EasyStar.js = function() {
                         (isTileWalkable(collisionGrid, acceptableTiles, searchNode.x, searchNode.y-1, searchNode) &&
                         isTileWalkable(collisionGrid, acceptableTiles, searchNode.x-1, searchNode.y, searchNode))) {
 
+                        const directionCost = getDirectionCost(-1, -1);
                         checkAdjacentNode(instance, searchNode,
-                            -1, -1, DIAGONAL_COST * getTileCost(searchNode.x-1, searchNode.y-1));
+                            -1, -1, DIAGONAL_COST * directionCost * getTileCost(searchNode.x-1, searchNode.y-1));
                     }
                 }
                 if (searchNode.x < collisionGrid[0].length-1 && searchNode.y < collisionGrid.length-1) {
@@ -428,8 +449,9 @@ EasyStar.js = function() {
                         (isTileWalkable(collisionGrid, acceptableTiles, searchNode.x, searchNode.y+1, searchNode) &&
                         isTileWalkable(collisionGrid, acceptableTiles, searchNode.x+1, searchNode.y, searchNode))) {
 
+                        const directionCost = getDirectionCost(1, 1);
                         checkAdjacentNode(instance, searchNode,
-                            1, 1, DIAGONAL_COST * getTileCost(searchNode.x+1, searchNode.y+1));
+                            1, 1, DIAGONAL_COST * directionCost * getTileCost(searchNode.x+1, searchNode.y+1));
                     }
                 }
                 if (searchNode.x < collisionGrid[0].length-1 && searchNode.y > 0) {
@@ -438,8 +460,9 @@ EasyStar.js = function() {
                         (isTileWalkable(collisionGrid, acceptableTiles, searchNode.x, searchNode.y-1, searchNode) &&
                         isTileWalkable(collisionGrid, acceptableTiles, searchNode.x+1, searchNode.y, searchNode))) {
 
+                        const directionCost = getDirectionCost(1, -1);
                         checkAdjacentNode(instance, searchNode,
-                            1, -1, DIAGONAL_COST * getTileCost(searchNode.x+1, searchNode.y-1));
+                            1, -1, DIAGONAL_COST * directionCost * getTileCost(searchNode.x+1, searchNode.y-1));
                     }
                 }
                 if (searchNode.x > 0 && searchNode.y < collisionGrid.length-1) {
@@ -448,14 +471,19 @@ EasyStar.js = function() {
                         (isTileWalkable(collisionGrid, acceptableTiles, searchNode.x, searchNode.y+1, searchNode) &&
                         isTileWalkable(collisionGrid, acceptableTiles, searchNode.x-1, searchNode.y, searchNode))) {
 
+                        const directionCost = getDirectionCost(-1, 1);
                         checkAdjacentNode(instance, searchNode,
-                            -1, 1, DIAGONAL_COST * getTileCost(searchNode.x-1, searchNode.y+1));
+                            -1, 1, DIAGONAL_COST * directionCost * getTileCost(searchNode.x-1, searchNode.y+1));
                     }
                 }
             }
 
         }
     };
+
+    var getDirectionCost = function (dx, dy) {
+        return directionCosts[1 + dy][1 + dx];
+    }
 
     // Private methods follow
     var checkAdjacentNode = function(instance, searchNode, x, y, cost) {
